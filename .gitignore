@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Uploads folder (user uploads)
+uploads/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
