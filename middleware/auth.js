@@ -14,7 +14,7 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.userId).select('-password -otp -otpExpiry');
     
     if (!user) {
       return res.status(401).json({ error: 'Invalid token. User not found.' });
@@ -30,7 +30,15 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// Middleware to check if user is admin
+// Middleware to check if user is verified
+const requireVerified = (req, res, next) => {
+  if (!req.user || !req.user.isVerified) {
+    return res.status(403).json({ error: 'Please verify your mobile number to access this feature.' });
+  }
+  next();
+};
+
+// Middleware to check if user is admin (keep for backward compatibility)
 const requireAdmin = (req, res, next) => {
   if (!req.user || !req.user.isAdmin) {
     return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
@@ -38,5 +46,4 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticateToken, requireAdmin, JWT_SECRET };
-
+module.exports = { authenticateToken, requireVerified, requireAdmin, JWT_SECRET };

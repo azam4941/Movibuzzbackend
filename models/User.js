@@ -14,6 +14,24 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
+  mobile: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  otp: {
+    type: String,
+    default: null
+  },
+  otpExpiry: {
+    type: Date,
+    default: null
+  },
   isAdmin: {
     type: Boolean,
     default: false
@@ -38,5 +56,19 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+// Generate OTP
+userSchema.methods.generateOTP = function() {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  this.otp = otp;
+  this.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  return otp;
+};
 
+// Verify OTP
+userSchema.methods.verifyOTP = function(inputOtp) {
+  if (!this.otp || !this.otpExpiry) return false;
+  if (new Date() > this.otpExpiry) return false;
+  return this.otp === inputOtp;
+};
+
+module.exports = mongoose.model('User', userSchema);
