@@ -14,11 +14,12 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  mobile: {
+  email: {
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
+    lowercase: true
   },
   isVerified: {
     type: Boolean,

@@ -7,10 +7,10 @@ const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
 // Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, mobile } = req.body;
+    const { username, password, email } = req.body;
 
-    if (!username || !password || !mobile) {
-      return res.status(400).json({ error: 'Username, password, and mobile number are required' });
+    if (!username || !password || !email) {
+      return res.status(400).json({ error: 'Username, password, and email are required' });
     }
 
     if (username.length < 3) {
@@ -21,10 +21,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    // Validate mobile number (basic validation - 10 digits)
-    const mobileRegex = /^[0-9]{10}$/;
-    if (!mobileRegex.test(mobile)) {
-      return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number' });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
     // Check if username exists
@@ -33,17 +33,17 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Username already exists' });
     }
 
-    // Check if mobile exists
-    const existingMobile = await User.findOne({ mobile });
-    if (existingMobile) {
-      return res.status(400).json({ error: 'Mobile number already registered' });
+    // Check if email exists
+    const existingEmail = await User.findOne({ email: email.toLowerCase() });
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already registered' });
     }
 
     // Create new user
     const user = new User({
       username: username.toLowerCase(),
       password,
-      mobile,
+      email: email.toLowerCase(),
       isVerified: false
     });
 
@@ -51,14 +51,14 @@ router.post('/register', async (req, res) => {
     const otp = user.generateOTP();
     await user.save();
 
-    // In production, send SMS here
-    // For demo, we'll log the OTP (replace with actual SMS service)
-    console.log(`📱 OTP for ${mobile}: ${otp}`);
+    // In production, send email here using nodemailer or similar
+    // For demo, we'll log the OTP (replace with actual email service)
+    console.log(`📧 OTP for ${email}: ${otp}`);
 
     res.status(201).json({
-      message: 'Registration successful! Please verify your mobile number.',
+      message: 'Registration successful! Please verify your email.',
       userId: user._id,
-      // OTP displayed for demo - integrate SMS service for production
+      // OTP displayed for demo - integrate email service for production
       otp: otp
     });
   } catch (error) {
@@ -70,31 +70,31 @@ router.post('/register', async (req, res) => {
 // Send OTP (for resend or verification)
 router.post('/send-otp', async (req, res) => {
   try {
-    const { mobile } = req.body;
+    const { email } = req.body;
 
-    if (!mobile) {
-      return res.status(400).json({ error: 'Mobile number is required' });
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
     }
 
-    const user = await User.findOne({ mobile });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(404).json({ error: 'User not found with this mobile number' });
+      return res.status(404).json({ error: 'User not found with this email' });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ error: 'Mobile number already verified' });
+      return res.status(400).json({ error: 'Email already verified' });
     }
 
     // Generate new OTP
     const otp = user.generateOTP();
     await user.save();
 
-    // In production, send SMS here
-    console.log(`📱 OTP for ${mobile}: ${otp}`);
+    // In production, send email here
+    console.log(`📧 OTP for ${email}: ${otp}`);
 
     res.json({
       message: 'OTP sent successfully!',
-      // OTP displayed for demo - integrate SMS service for production
+      // OTP displayed for demo - integrate email service for production
       otp: otp
     });
   } catch (error) {
@@ -106,19 +106,19 @@ router.post('/send-otp', async (req, res) => {
 // Verify OTP
 router.post('/verify-otp', async (req, res) => {
   try {
-    const { mobile, otp } = req.body;
+    const { email, otp } = req.body;
 
-    if (!mobile || !otp) {
-      return res.status(400).json({ error: 'Mobile number and OTP are required' });
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
     }
 
-    const user = await User.findOne({ mobile });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ error: 'Mobile number already verified' });
+      return res.status(400).json({ error: 'Email already verified' });
     }
 
     // Verify OTP
@@ -140,12 +140,12 @@ router.post('/verify-otp', async (req, res) => {
     );
 
     res.json({
-      message: 'Mobile number verified successfully!',
+      message: 'Email verified successfully!',
       token,
       user: {
         id: user._id,
         username: user.username,
-        mobile: user.mobile,
+        email: user.email,
         isVerified: user.isVerified
       }
     });
@@ -179,9 +179,9 @@ router.post('/login', async (req, res) => {
     // Check if user is verified
     if (!user.isVerified) {
       return res.status(403).json({ 
-        error: 'Please verify your mobile number first',
+        error: 'Please verify your email first',
         needsVerification: true,
-        mobile: user.mobile
+        email: user.email
       });
     }
 
@@ -198,7 +198,7 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        mobile: user.mobile,
+        email: user.email,
         isVerified: user.isVerified
       }
     });
@@ -215,7 +215,7 @@ router.get('/verify', authenticateToken, (req, res) => {
     user: {
       id: req.user._id,
       username: req.user.username,
-      mobile: req.user.mobile,
+      email: req.user.email,
       isVerified: req.user.isVerified
     }
   });
@@ -227,7 +227,7 @@ router.get('/me', authenticateToken, (req, res) => {
     user: {
       id: req.user._id,
       username: req.user.username,
-      mobile: req.user.mobile,
+      email: req.user.email,
       isVerified: req.user.isVerified
     }
   });
