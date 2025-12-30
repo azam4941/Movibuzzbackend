@@ -5,6 +5,7 @@ const Movie = require('../models/Movie');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -67,8 +68,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST create new movie
-router.post('/', upload.fields([
+// POST create new movie (Admin only)
+router.post('/', authenticateToken, requireAdmin, upload.fields([
   { name: 'poster', maxCount: 1 },
   { name: 'banner', maxCount: 1 },
   { name: 'gallery', maxCount: 10 }
@@ -142,8 +143,8 @@ router.post('/', upload.fields([
   next();
 });
 
-// DELETE movie
-router.delete('/:id', async (req, res) => {
+// DELETE movie (Admin only)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     // Validate MongoDB ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
