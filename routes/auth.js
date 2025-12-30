@@ -58,8 +58,8 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       message: 'Registration successful! Please verify your mobile number.',
       userId: user._id,
-      // Remove this in production - only for testing
-      debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+      // OTP displayed for demo - integrate SMS service for production
+      otp: otp
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -94,8 +94,8 @@ router.post('/send-otp', async (req, res) => {
 
     res.json({
       message: 'OTP sent successfully!',
-      // Remove this in production - only for testing
-      debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+      // OTP displayed for demo - integrate SMS service for production
+      otp: otp
     });
   } catch (error) {
     console.error('Send OTP error:', error);
