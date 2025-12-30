@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
+const { sendOtpEmail } = require('../utils/email');
 
 // Register new user
 router.post('/register', async (req, res) => {
@@ -51,16 +52,22 @@ router.post('/register', async (req, res) => {
     const otp = user.generateOTP();
     await user.save();
 
-    // In production, send email here using nodemailer or similar
-    // For demo, we'll log the OTP (replace with actual email service)
-    console.log(`📧 OTP for ${email}: ${otp}`);
+    // Send OTP via email
+    const emailResult = await sendOtpEmail(email, otp, username);
 
-    res.status(201).json({
-      message: 'Registration successful! Please verify your email.',
-      userId: user._id,
-      // OTP displayed for demo - integrate email service for production
-      otp: otp
-    });
+    const response = {
+      message: 'Registration successful! Please check your email for the verification code.',
+      userId: user._id
+    };
+
+    // If email not configured or failed, include OTP for demo
+    if (emailResult.demo) {
+      response.otp = otp;
+      response.demoMode = true;
+      response.message = 'Registration successful! (Demo mode - OTP shown on screen)';
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Server error during registration' });
@@ -89,14 +96,21 @@ router.post('/send-otp', async (req, res) => {
     const otp = user.generateOTP();
     await user.save();
 
-    // In production, send email here
-    console.log(`📧 OTP for ${email}: ${otp}`);
+    // Send OTP via email
+    const emailResult = await sendOtpEmail(email, otp, user.username);
 
-    res.json({
-      message: 'OTP sent successfully!',
-      // OTP displayed for demo - integrate email service for production
-      otp: otp
-    });
+    const response = {
+      message: 'OTP sent successfully! Please check your email.'
+    };
+
+    // If email not configured or failed, include OTP for demo
+    if (emailResult.demo) {
+      response.otp = otp;
+      response.demoMode = true;
+      response.message = 'OTP generated! (Demo mode - OTP shown on screen)';
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('Send OTP error:', error);
     res.status(500).json({ error: 'Server error sending OTP' });
