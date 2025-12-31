@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/movies', require('./routes/movies'));
+app.use('/api/search', require('./routes/search'));
 
 // Global error handler
 app.use((err, req, res, next) => {
